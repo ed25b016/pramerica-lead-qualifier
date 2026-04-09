@@ -1,6 +1,10 @@
 import { promises as fs } from "fs";
 import path from "path";
 
+// Vercel and other serverless platforms have read-only filesystems.
+// Skip file writes and use console logging only in those environments.
+const IS_SERVERLESS = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+
 const LOG_DIR = path.join(process.cwd(), "logs");
 const REJECTED_LOG = path.join(LOG_DIR, "rejected.jsonl");
 const QUALIFIED_LOG = path.join(LOG_DIR, "qualified.jsonl");
@@ -15,6 +19,7 @@ async function ensureLogDir() {
 }
 
 async function appendLog(filePath, data) {
+  if (IS_SERVERLESS) return; // Skip file writes on read-only serverless environments
   await ensureLogDir();
   const entry = JSON.stringify({ ...data, timestamp: new Date().toISOString() }) + "\n";
   await fs.appendFile(filePath, entry, "utf-8");
